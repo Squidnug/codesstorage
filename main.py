@@ -197,9 +197,26 @@ class CodeDatabase:
                 (guild_id, limit),
             ).fetchall()
 
+    def wipe_codes(self, guild_id: int) -> int:
+        """Delete all available/claimed codes and claim history for one server."""
+        with self._write_lock, self.connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
 
+            cursor = connection.execute(
+                "DELETE FROM codes WHERE guild_id = ?",
+                (guild_id,),
+            )
+            deleted_count = cursor.rowcount
+
+            connection.execute(
+                "DELETE FROM claims WHERE guild_id = ?",
+                (guild_id,),
+            )
+
+            connection.commit()
+            return deleted_count
+            
 database = CodeDatabase(DATABASE_PATH)
-
 
 class CodeBot(commands.Bot):
     async def setup_hook(self) -> None:
@@ -332,6 +349,34 @@ async def stats(interaction: discord.Interaction) -> None:
     embed.add_field(name="Claimed", value=str(claimed), inline=True)
     await interaction.response.send_message(embed=embed, ephemeral=False)
 
+@bot.tree.command(
+    name="wipecodes",
+    description="Permanently remove all codes and claim history from this server.",
+)
+@app_commands.describe(
+    confirm="Select True to permanently delete every code"
+)
+async def wipecodes(
+    interaction: discord.Interaction,
+    confirm: bool,
+) -> None:
+    if not await require_access(interaction):
+        return
+
+    if not confirm:
+        await interaction.response.send_message(
+            "Wipe cancelled. You must select `True` to confirm.",
+            ephemeral=True,
+        )
+        return
+
+    deleted_count = database.wipe_codes(interaction.guild_id)
+
+    await interaction.response.send_message(
+        f"Database wiped. **{deleted_count}** code(s) and all claim history "
+        "were permanently removed from this server.",
+        ephemeral=False,
+    )
 
 @bot.tree.command(name="history", description="Show recent code claims in this server.")
 @app_commands.describe(limit=f"Number of claims to show (1-{MAX_HISTORY_ENTRIES})")
