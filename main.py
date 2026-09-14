@@ -279,7 +279,7 @@ async def addcodes(interaction: discord.Interaction, codes: str) -> None:
     added, duplicates = database.add_codes(interaction.guild_id, interaction.user.id, normalized)
     await interaction.response.send_message(
         f"Added **{added}** code(s). Skipped **{duplicates}** duplicate code(s).",
-        ephemeral=True,
+        ephemeral=False,
     )
 
 
@@ -299,7 +299,7 @@ async def getcodes(interaction: discord.Interaction, amount: app_commands.Range[
         await interaction.response.send_message(
             f"You requested **{amount}**, but only **{available}** code(s) are available. "
             "No codes were claimed.",
-            ephemeral=True,
+            ephemeral=False,
         )
         return
 
@@ -307,7 +307,7 @@ async def getcodes(interaction: discord.Interaction, amount: app_commands.Range[
     await interaction.response.send_message(
         f"You claimed **{amount}** code(s):\n\n{formatted}\n\n"
         "These codes are now permanently marked as claimed.",
-        ephemeral=True,
+        ephemeral=False,
     )
 
 
@@ -317,7 +317,7 @@ async def available(interaction: discord.Interaction) -> None:
         return
     _, available_count, _ = database.counts(interaction.guild_id)
     await interaction.response.send_message(
-        f"**{available_count}** unused code(s) are available.", ephemeral=True
+        f"**{available_count}** unused code(s) are available.", ephemeral=False
     )
 
 
@@ -330,7 +330,7 @@ async def stats(interaction: discord.Interaction) -> None:
     embed.add_field(name="Total", value=str(total), inline=True)
     embed.add_field(name="Available", value=str(available_count), inline=True)
     embed.add_field(name="Claimed", value=str(claimed), inline=True)
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 @bot.tree.command(name="history", description="Show recent code claims in this server.")
@@ -343,7 +343,7 @@ async def history(
         return
     rows = database.history(interaction.guild_id, limit)
     if not rows:
-        await interaction.response.send_message("No codes have been claimed yet.", ephemeral=True)
+        await interaction.response.send_message("No codes have been claimed yet.", ephemeral=False)
         return
 
     lines = []
@@ -360,7 +360,7 @@ async def history(
         color=discord.Color.blurple(),
     )
     embed.set_footer(text="Exact claimed codes remain private.")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 @bot.event
